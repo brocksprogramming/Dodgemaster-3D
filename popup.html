@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" style="width: 800px; height: 600px;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dodge Master 3D — Platformer & Riddle Arena</title>
+  <!-- Tailwind CSS (Fixed: loaded via <link> instead of <script>) -->
+  <link rel="stylesheet" href="tailwind.min.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css" />
+  <!-- Self-contained Extension HUD & Layout Guarantee -->
+  <style>
+    /* Ensure HUD, Controls, and Modals render properly on top of the 800x600 3D Canvas */
+    #hud-header {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 30 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 10px 14px !important;
+      pointer-events: none !important;
+      box-sizing: border-box !important;
+    }
+    #hud-footer {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 30 !important;
+      display: flex !important;
+      align-items: flex-end !important;
+      justify-content: space-between !important;
+      padding: 10px 14px !important;
+      pointer-events: none !important;
+      box-sizing: border-box !important;
+    }
+    #hud-header > *, #hud-footer > * {
+      pointer-events: auto !important;
+    }
+    .hud-card {
+      background: rgba(15, 23, 42, 0.85) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      border-radius: 14px !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+      color: #f8fafc !important;
+    }
+    .kbd-key {
+      background: #1e293b !important;
+      border: 1px solid #475569 !important;
+      border-radius: 6px !important;
+      padding: 2px 7px !important;
+      font-family: monospace !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+    }
+    #shrine-prompt {
+      position: fixed !important;
+      bottom: 72px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      z-index: 35 !important;
+    }
+    #toast-banner {
+      position: fixed !important;
+      top: 74px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      z-index: 35 !important;
+      pointer-events: none !important;
+    }
+#end-modal {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 800px !important;
+      height: 600px !important;
+      z-index: 60 !important;
+      background: rgba(2, 6, 23, 0.85) !important;
+      backdrop-filter: blur(8px) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    #riddle-modal {
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      z-index: 55 !important;
+      width: 480px !important;
+      max-width: 90% !important;
+      display: block !important;
+      background: rgba(10, 15, 35, 0.96) !important;
+      border: 2px solid #a855f7 !important;
+      border-radius: 18px !important;
+      padding: 24px !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(168, 85, 247, 0.55) !important;
+      pointer-events: auto !important;
+    }
+
+    /* Keep .hidden AFTER #end-modal and #riddle-modal so it hides them until triggered */
+    #end-modal.hidden,
+    #riddle-modal.hidden,
+    #shrine-prompt.hidden,
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body style="width: 800px; height: 600px; margin: 0; padding: 0; overflow: hidden;" class="bg-slate-950 text-white select-none">
+
+  <!-- Primary 3D Game Canvas Container -->
+  <div id="canvas-container" style="width: 800px; height: 600px; position: absolute; top: 0; left: 0; z-index: 1; overflow: hidden;"></div>
+
+  <!-- ================= TOP HUD BAR ================= -->
+  <header id="hud-header">
+    <!-- Left: Brand & Narrative Banner -->
+    <div class="hud-card" style="padding: 8px 14px; display: flex; align-items: center; gap: 10px;">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #9333ea); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(99,102,241,0.4);">
+        <i class="fa-solid fa-bolt" style="color: #fff; font-size: 16px;"></i>
+      </div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h1 class="font-cyber" style="margin: 0; font-size: 15px; font-weight: 800; letter-spacing: 0.05em; color: #67e8f9;">
+            DODGE MASTER 3D
+          </h1>
+          <span id="theme-badge" style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: rgba(251, 191, 36, 0.2); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.35); display: inline-flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-sun"></i> Day
+          </span>
+        </div>
+        <p style="margin: 2px 0 0 0; font-size: 11px; color: #cbd5e1;" title="Original Narrative: This game is under construction. I've put it online to see how interested the public is in this type of game.">
+          Climb to the Shrine, blast the Robot, and solve 9 riddles!
+        </p>
+      </div>
+    </div>
+
+    <!-- Right: Stats & Audio Controls -->
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <!-- Riddles Solved Counter -->
+      <div class="hud-card" style="padding: 6px 12px; display: flex; align-items: center; gap: 8px;">
+        <div style="color: #c084fc; font-size: 16px;">
+          <i class="fa-solid fa-scroll"></i>
+        </div>
+        <div>
+          <div style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700;">Riddles Solved</div>
+          <div class="font-cyber" style="font-size: 14px; font-weight: 800; color: #ffffff;">
+            <span id="riddle-score" style="color: #22d3ee;">0</span> / 9
+          </div>
+        </div>
+      </div>
+
+      <!-- Deadly Robot Status -->
+      <div class="hud-card" style="padding: 6px 12px; display: flex; align-items: center; gap: 8px;">
+        <div id="robot-status-icon" class="animate-spin" style="color: #fb7185; font-size: 16px;">
+          <i class="fa-solid fa-gear"></i>
+        </div>
+        <div>
+          <div style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700;">Deadly Robot</div>
+          <div id="robot-status-text" class="font-cyber" style="font-size: 12px; font-weight: 800; color: #fb7185;">
+            PATROLLING
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio Button ("Digital Evasion" Synth) -->
+      <button id="audio-toggle-btn" class="hud-card" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #67e8f9; cursor: pointer;" title="Toggle 'Digital Evasion' Music & SFX">
+        <i id="audio-icon" class="fa-solid fa-volume-high"></i>
+      </button>
+
+      <!-- Respawn / Reset Position Button -->
+      <button id="reset-game-btn" class="hud-card" style="height: 40px; padding: 0 12px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #e2e8f0; cursor: pointer;" title="Restart Game">
+        <i class="fa-solid fa-rotate-right" style="color: #818cf8;"></i>
+        <span>Restart</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Floating Status / Feedback Toast -->
+  <div id="toast-banner" class="opacity-0 transition-all duration-300">
+    <div id="toast-inner" class="hud-card font-cyber" style="padding: 8px 18px; border-radius: 999px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; border-color: rgba(34, 211, 238, 0.45); color: #a5f3fc;">
+      <i class="fa-solid fa-circle-info"></i>
+      <span id="toast-text">Welcome to Dodge Master 3D!</span>
+    </div>
+  </div>
+
+  <!-- Approach Riddle Master Floating Prompt -->
+  <div id="shrine-prompt" class="hidden animate-prompt">
+    <button id="open-riddle-btn" class="font-cyber" style="padding: 10px 20px; border-radius: 14px; font-weight: 700; font-size: 13px; background: linear-gradient(90deg, #9333ea, #4f46e5, #06b6d4); color: #ffffff; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 8px 25px rgba(147, 51, 234, 0.5); display: flex; align-items: center; gap: 10px; cursor: pointer;">
+      <i class="fa-solid fa-wand-magic-sparkles" style="color: #fcd34d;"></i>
+      <span>Consult the Riddle Master (Press R or Click)</span>
+    </button>
+  </div>
+
+  <!-- ================= BOTTOM CONTROLS BAR ================= -->
+  <footer id="hud-footer">
+    <!-- Desktop Controls Guide (Visible inside 800x600 Extension Popup) -->
+    <div class="hud-card" style="padding: 8px 12px; font-size: 11px; color: #cbd5e1; display: flex; align-items: center; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 5px;">
+        <kbd class="kbd-key" style="color: #67e8f9;">WASD</kbd>
+        <span>/</span>
+        <kbd class="kbd-key" style="color: #67e8f9;">Arrows</kbd>
+        <span style="color: #94a3b8;">Move</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px;">
+        <kbd class="kbd-key" style="color: #fcd34d;">SPACE</kbd>
+        <span style="color: #94a3b8;">Jump</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px;">
+        <kbd class="kbd-key" style="color: #fb7185;">F / E / Click</kbd>
+        <span style="color: #94a3b8;">Fireball</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px;">
+        <kbd class="kbd-key" style="color: #d8b4fe;">Drag</kbd>
+        <span style="color: #94a3b8;">Orbit Cam</span>
+      </div>
+    </div>
+
+    <!-- Hidden Mobile Touch Controls (Kept in DOM so popup.js event listeners never error) -->
+    <div class="hidden" style="display: none !important;">
+      <button data-dir="up" class="touch-btn"></button>
+      <button data-dir="left" class="touch-btn"></button>
+      <button data-dir="right" class="touch-btn"></button>
+      <button data-dir="down" class="touch-btn"></button>
+      <button id="mobile-shoot-btn"></button>
+      <button id="mobile-jump-btn"></button>
+    </div>
+
+    <!-- Desktop Quick Action Buttons (Bottom Right) -->
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button id="desktop-shoot-btn" class="hud-card font-cyber" style="padding: 8px 12px; border-color: rgba(244, 63, 94, 0.45); display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #fda4af; cursor: pointer;">
+        <i class="fa-solid fa-fire-flame-curved" style="color: #fb7185;"></i>
+        <span>FIREBALL (F)</span>
+      </button>
+      <button id="desktop-jump-btn" class="hud-card font-cyber" style="padding: 8px 12px; border-color: rgba(6, 182, 212, 0.45); display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #67e8f9; cursor: pointer;">
+        <i class="fa-solid fa-jet-fighter-up" style="color: #22d3ee;"></i>
+        <span>JUMP (SPACE)</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ================= RIDDLE MASTER MODAL ================= -->
+  <div id="riddle-modal" class="hidden">
+    <div style="width: 100%;">
+      <!-- Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px; text-align: left;">
+          <div style="width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #9333ea, #22d3ee); display: flex; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-eye" style="font-size: 20px; color: #fff;"></i>
+          </div>
+          <div>
+            <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #d8b4fe;">Ancient Guardian</div>
+            <h2 class="font-cyber" style="margin: 0; font-size: 18px; font-weight: 800; color: #fff;">The Riddle Master</h2>
+          </div>
+        </div>
+        <span id="riddle-modal-progress" class="font-cyber" style="padding: 4px 10px; border-radius: 999px; font-size: 11px; background: rgba(168, 85, 247, 0.25); border: 1px solid rgba(192, 132, 252, 0.4); color: #e9d5ff;">
+          Riddle #1
+        </span>
+      </div>
+
+      <!-- Riddle Text Box -->
+      <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 14px; margin-bottom: 12px;">
+        <p id="riddle-question-text" style="margin: 0; font-size: 15px; color: #f1f5f9; line-height: 1.5; font-style: italic; font-weight: 500;">
+          "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?"
+        </p>
+      </div>
+
+      <!-- Hint Toggle -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 12px;">
+        <button id="toggle-hint-btn" type="button" style="background: transparent !important; border: none !important; padding: 4px !important; color: #22d3ee !important; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <i class="fa-regular fa-lightbulb"></i>
+          <span>Need a hint?</span>
+        </button>
+        <span id="riddle-hint-text" class="hidden" style="color: #fcd34d !important; font-weight: 600;"></span>
+      </div>
+
+      <!-- Answer Input Form -->
+      <form id="riddle-form">
+        <div style="text-align: left;">
+          <label for="answerInput" style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 4px; font-weight: 700;">
+            Your Answer (Warning: A wrong answer is fatal!)
+          </label>
+          <input
+            type="text"
+            id="answerInput"
+            autocomplete="off"
+            placeholder="Type your answer here..."
+          />
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button
+            type="button"
+            id="close-riddle-btn"
+            style="background: #1e293b !important;"
+          >
+            Step Back
+          </button>
+          <button
+            type="submit"
+            id="submitAnswer"
+          >
+            Submit Answer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= GAME OVER / VICTORY OVERLAY ================= -->
+  <div id="end-modal" class="hidden">
+    <div class="hud-card" style="max-width: 420px; width: 90%; padding: 28px; text-align: center; border-radius: 20px;">
+      <div id="end-icon-wrap" style="width: 68px; height: 68px; margin: 0 auto 16px auto; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; background: linear-gradient(135deg, #e11d48, #f97316);">
+        <i id="end-icon" class="fa-solid fa-skull"></i>
+      </div>
+      <h2 id="end-title" class="font-cyber" style="margin: 0 0 8px 0; font-size: 26px; font-weight: 900; color: #fb7185;">
+        GAME OVER
+      </h2>
+      <p id="end-reason" style="margin: 0 0 20px 0; color: #cbd5e1; font-size: 14px; line-height: 1.5;">
+        You were vaporized by the Deadly Robot! Your character has been turned into a 3D Gravestone (R.I.P.).
+      </p>
+
+      <div style="background: rgba(2, 6, 23, 0.75); border-radius: 14px; padding: 14px; margin-bottom: 20px; display: flex; justify-content: space-around; border: 1px solid rgba(255,255,255,0.1);">
+        <div>
+          <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8;">Riddles Solved</div>
+          <div id="end-score" class="font-cyber" style="font-size: 18px; font-weight: 800; color: #22d3ee;">0 / 9</div>
+        </div>
+        <div style="border-right: 1px solid rgba(255,255,255,0.1);"></div>
+        <div>
+          <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8;">Robots Blasted</div>
+          <div id="end-robots" class="font-cyber" style="font-size: 18px; font-weight: 800; color: #fb7185;">0</div>
+        </div>
+      </div>
+
+      <button
+        id="play-again-btn"
+        class="font-cyber"
+        style="width: 100%; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 14px; background: linear-gradient(90deg, #06b6d4, #6366f1, #9333ea); color: #ffffff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;"
+      >
+        <i class="fa-solid fa-play"></i>
+        <span>PLAY AGAIN</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= SCRIPTS ================= -->
+  <script src="three.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
