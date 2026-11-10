@@ -31,6 +31,7 @@ The game is designed to be easy to pick up, difficult to master, and perfect for
 - Sprint / Boost: Shift
 - Pause: Escape
 - Restart after failure: R
+- Space: Fire and attack
 
 If you are using a gamepad, the project can also support controller input via the engine’s input system.
 
